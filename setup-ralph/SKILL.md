@@ -17,11 +17,17 @@ Before doing anything, check if `ralph/` (or a custom ralph directory) already e
 - Check if `backlog/` exists → Local mode
 - Check if `once.sh` references `gh issue list` → GitHub mode
 
-Then tell the user what's already set up and ask what they want to change:
-- "You already have **Local HITL** set up. Want to add **AFK**?"
-- "You already have **GitHub HITL + AFK**. Nothing to add — or do you want to switch to Local mode?"
+Then tell the user what's already set up and offer the specific next step:
 
-Only create/overwrite files that are needed. Do NOT recreate files that already exist and are correct.
+**Missing pieces:**
+- Has HITL but no AFK → "Want to add **AFK**?"
+- Has AFK but no HITL → "Want to add **HITL**?" (once.sh may have been deleted)
+- Has both → tell the user: "Ralph is already fully set up (**<mode> HITL + AFK**)." Then ask: "Want a clean reinstall?" If yes, delete the existing scripts (`once.sh`, `afk.sh`, `prompt.md`, `README.md`) and proceed with full setup. Preserve `backlog/` and `history.md` — those contain user data.
+
+**Mode switch:**
+- Has GitHub, wants Local (or vice versa) → warn that this will overwrite `prompt.md`, `once.sh`, and `afk.sh` (if it exists). Ask for confirmation before proceeding. Preserve any existing `backlog/` or `history.md` files.
+
+Only create/overwrite files that are needed. Do NOT recreate files that already exist and are correct. Do NOT ask open-ended questions about changing the existing setup — just offer the specific missing piece.
 
 **If it doesn't exist**, proceed with full setup below.
 
@@ -37,17 +43,19 @@ If typecheck or lint commands don't exist, **stop and tell the user** they need 
 
 If there's a single command that runs all checks (e.g., `npm run check-for-errors`), that works too — use it as the feedback loop command.
 
-## Docker check
+## Environment checks
 
-**Before asking any questions**, check if Docker is available by running `docker --version`.
+**Before asking any questions**, check what's available:
 
-If Docker is NOT installed:
-- Tell the user: "Docker Desktop is not installed. AFK Ralph requires Docker to run Claude in an isolated sandbox."
-- Provide the install link: https://docs.docker.com/get-started/get-docker/
-- Tell them they can still set up **HITL only** now and add AFK later once Docker is installed.
-- Also check for `jq` (`jq --version`) — if missing, tell them to install it (`brew install jq` on macOS, `apt install jq` on Linux).
+1. **Docker** — run `docker --version`
+   - If missing: "Docker Desktop is not installed. AFK Ralph requires Docker to run Claude in an isolated sandbox." Provide install link: https://docs.docker.com/get-started/get-docker/. Only offer HITL.
+   - Also check `jq --version` — if missing, tell them to install it (`brew install jq` on macOS, `apt install jq` on Linux).
 
-If Docker IS installed, all options are available.
+2. **GitHub CLI** — run `gh --version`
+   - If missing: GitHub mode is not available. Only offer Local mode.
+   - If present but not authenticated (`gh auth status`): tell the user to run `gh auth login` first.
+
+Only present options that are actually available based on these checks.
 
 ## Setup workflow
 
