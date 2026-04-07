@@ -28,7 +28,9 @@ AFK Ralph uses `docker sandbox run claude .` to isolate Claude in a container. T
 docker sandbox run claude .
 ```
 
-First run creates a sandbox environment and pulls the image. You'll need to:
+First run pulls the Docker image and creates a sandbox environment. **This can take several minutes** — the image is large. The terminal may look stuck but it's downloading in the background. Be patient.
+
+You'll need to:
 - Log in to Claude Code (subscription or console account)
 - Accept the safety check and trust the folder
 
