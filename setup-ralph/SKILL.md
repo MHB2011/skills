@@ -7,6 +7,24 @@ description: Set up Ralph (HITL + AFK) autonomous coding loops in any project. C
 
 Set up Ralph — an autonomous coding loop that runs Claude Code with a plan until the task is complete.
 
+## Existing setup detection
+
+Before doing anything, check if `ralph/` (or a custom ralph directory) already exists in the project.
+
+**If it exists**, read the existing files to understand the current setup:
+- Check if `once.sh` exists → HITL is set up
+- Check if `afk.sh` exists → AFK is set up
+- Check if `backlog/` exists → Local mode
+- Check if `once.sh` references `gh issue list` → GitHub mode
+
+Then tell the user what's already set up and ask what they want to change:
+- "You already have **Local HITL** set up. Want to add **AFK**?"
+- "You already have **GitHub HITL + AFK**. Nothing to add — or do you want to switch to Local mode?"
+
+Only create/overwrite files that are needed. Do NOT recreate files that already exist and are correct.
+
+**If it doesn't exist**, proceed with full setup below.
+
 ## Prerequisites check
 
 Before proceeding, verify the project has feedback loops. Ralph MUST have at minimum:
@@ -19,6 +37,18 @@ If typecheck or lint commands don't exist, **stop and tell the user** they need 
 
 If there's a single command that runs all checks (e.g., `npm run check-for-errors`), that works too — use it as the feedback loop command.
 
+## Docker check
+
+**Before asking any questions**, check if Docker is available by running `docker --version`.
+
+If Docker is NOT installed:
+- Tell the user: "Docker Desktop is not installed. AFK Ralph requires Docker to run Claude in an isolated sandbox."
+- Provide the install link: https://docs.docker.com/get-started/get-docker/
+- Tell them they can still set up **HITL only** now and add AFK later once Docker is installed.
+- Also check for `jq` (`jq --version`) — if missing, tell them to install it (`brew install jq` on macOS, `apt install jq` on Linux).
+
+If Docker IS installed, all options are available.
+
 ## Setup workflow
 
 ### 1. Ask the user
@@ -30,7 +60,7 @@ Two questions drive everything:
    - **GitHub** — Full autonomous mode. Tasks come from GitHub issues. Ralph auto-commits, closes issues, and leaves comments. Visible to the team. Requires `gh` CLI.
    - **Local** — Everything stays on your machine. Tasks come from MD files in `<ralph-dir>/backlog/`. Progress tracked in `<ralph-dir>/history.md` instead of git commits. Gitignored by default — use Ralph without your team having to know about it. Use `/draft-prd` to create PRDs into the backlog.
 
-2. **HITL or also AFK?** — HITL (once.sh) only, or also set up AFK (afk.sh)? **Strongly recommend starting with HITL** — see how Ralph behaves before letting it run unsupervised.
+2. **HITL or also AFK?** — HITL (once.sh) only, or also set up AFK (afk.sh)? **Strongly recommend starting with HITL** — see how Ralph behaves before letting it run unsupervised. **If Docker is not installed, only offer HITL.**
 
 Then auto-detect or confirm:
 
@@ -58,7 +88,7 @@ See [REFERENCE.md](REFERENCE.md) for exact file contents.
 - `afk.sh` — loops Claude until done or max iterations
 
 Adapt the templates:
-- Replace `<feedback-loop-commands>` in `prompt.md` with the user's actual commands
+- Replace `<feedback-loop-commands>` in `prompt.md` with the user's actual commands as a markdown bullet list (e.g., `- \`pnpm run test\` to run the tests`). Do NOT use code blocks.
 - Replace `<ralph-dir>` in all scripts with the actual ralph directory path
 
 ### 3. Make scripts executable
@@ -73,7 +103,7 @@ chmod +x <ralph-dir>/afk.sh
 
 **Skip this step entirely for HITL.** HITL Ralph does NOT require Docker.
 
-If AFK was chosen, tell the user it requires Docker Desktop and `jq`. Walk them through the setup — see [REFERENCE.md](REFERENCE.md) for Docker sandbox setup instructions and verification steps.
+If AFK was chosen, walk the user through Docker sandbox setup — see [REFERENCE.md](REFERENCE.md) for instructions and verification steps.
 
 **GitHub mode additional step:** authenticate `gh` CLI inside the Docker sandbox (`gh auth login`).
 

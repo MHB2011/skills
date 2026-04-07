@@ -23,12 +23,12 @@ Check existing backlog items to avoid duplicates — if a similar task already e
      - `refactor`, `rename`, `extract`, `clean up` → `refactor`
      - `test`, `lint`, `ci`, `types`, `tooling`, `config` → `infrastructure`
      - everything else → `task`
-   - **priority** — infer from type and urgency:
-     - `bug` with urgent language (crash, broken, blocker) → 1
-     - `infrastructure` → 2
-     - `task` → 3
-     - words like `polish`, `tweak`, `minor`, `nice to have` → 4
-     - `refactor` → 5
+   - **priority** — ask the user. Show them the scale:
+     - 1 = Critical bugfix
+     - 2 = Dev infrastructure
+     - 3 = New feature / general task
+     - 4 = Polish / quick win
+     - 5 = Refactor
 
 3. Write the file to `ralph/backlog/<kebab-case-title>.md`:
 
