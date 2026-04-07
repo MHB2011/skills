@@ -319,12 +319,7 @@ The `---` separator at the end is critical — the scripts use it to parse the l
 
 If the task is complete, update the backlog file's frontmatter to `status: closed`.
 
-If the task is not complete, update the frontmatter to `status: in-progress` and append a comment at the bottom of the backlog file:
-
-```
-## Comment — <date>
-<what was done, key decisions, blockers>
-```
+If the task is not complete, update the frontmatter to `status: in-progress` and append a comment at the bottom of the backlog file using a level-2 heading `## Comment — <date>` followed by what was done, key decisions, and blockers.
 
 # FINAL RULES
 
