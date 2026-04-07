@@ -587,14 +587,16 @@ Task description here...
 
 ### Companion skills
 
-Install these to create PRDs and plans directly into the backlog:
+Install these to create tasks, PRDs, and plans directly into the backlog:
 
 \`\`\`bash
+npx skills@latest add MHB2011/skills/draft-task -g
 npx skills@latest add MHB2011/skills/draft-prd -g
 npx skills@latest add MHB2011/skills/draft-plan -g
 \`\`\`
 
 Then use:
+- `/draft-task` — quickly add a task, bug, or small piece of work to the backlog
 - `/draft-prd` — interview-driven PRD, saved to `backlog/`
 - `/draft-plan` — turn a backlog PRD into a phased plan with tracer bullets, saved to `backlog/`
 

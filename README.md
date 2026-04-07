@@ -16,6 +16,7 @@ npx skills@latest add MHB2011/skills/<skill-name>
 |-------|-------------|
 | [draft-prd](./draft-prd) | Create a PRD through user interview and save it to Ralph's local backlog |
 | [draft-plan](./draft-plan) | Turn a local backlog PRD into a phased plan using tracer-bullet vertical slices |
+| [draft-task](./draft-task) | Quickly add a task, bug, or small piece of work to Ralph's local backlog |
 
 ### Tooling & Setup
 
