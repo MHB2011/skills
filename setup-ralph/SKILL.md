@@ -111,9 +111,16 @@ chmod +x <ralph-dir>/afk.sh
 
 **Skip this step entirely for HITL.** HITL Ralph does NOT require Docker.
 
-If AFK was chosen, walk the user through Docker sandbox setup — see [REFERENCE.md](REFERENCE.md) for instructions and verification steps.
+If AFK was chosen, **tell the user they must set up the sandbox before running afk.sh for the first time**:
 
-**GitHub mode additional step:** authenticate `gh` CLI inside the Docker sandbox (`gh auth login`).
+1. Run `docker sandbox run claude .` — this pulls the image (can take several minutes on first run) and opens Claude Code inside the container.
+2. Log in to Claude Code inside the sandbox (subscription or console account).
+3. Accept the safety check and trust the folder.
+4. Exit the sandbox (Ctrl+C).
+
+After this one-time setup, `afk.sh` will work. Without it, afk.sh will fail with "Not logged in."
+
+**GitHub mode additional step:** also run `! gh auth login` inside the sandbox to authenticate the GitHub CLI.
 
 ### 5. Verify and point to README
 
