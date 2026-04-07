@@ -2,7 +2,14 @@
 
 Two modes: **GitHub** and **Local**. Each mode has its own once.sh, afk.sh, and prompt.md.
 
-Replace `<ralph-dir>` with the actual ralph directory path and `<feedback-loop-commands>` with the project's actual commands.
+Replace `<ralph-dir>` with the actual ralph directory path and `<feedback-loop-commands>` with the project's actual commands as a markdown bullet list, e.g.:
+
+```
+- `pnpm run test` to run the tests
+- `pnpm run typecheck` to run the type checker
+```
+
+Do NOT use code blocks for feedback loop commands — use bullet list format as shown above.
 
 ---
 
@@ -578,7 +585,18 @@ created: YYYY-MM-DD
 Task description here...
 \`\`\`
 
-Or use `/draft-prd` to create PRDs interactively.
+### Companion skills
+
+Install these to create PRDs and plans directly into the backlog:
+
+\`\`\`bash
+npx skills@latest add MHB2011/skills/draft-prd -g
+npx skills@latest add MHB2011/skills/draft-plan -g
+\`\`\`
+
+Then use:
+- `/draft-prd` — interview-driven PRD, saved to `backlog/`
+- `/draft-plan` — turn a backlog PRD into a phased plan with tracer bullets, saved to `backlog/`
 
 ### Priority
 
