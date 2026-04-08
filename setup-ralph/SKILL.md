@@ -66,7 +66,7 @@ Two questions drive everything:
 1. **GitHub or Local?**
 
    - **GitHub** — Full autonomous mode. Tasks come from GitHub issues. Ralph auto-commits, closes issues, and leaves comments. Visible to the team. Requires `gh` CLI.
-   - **Local** — Everything stays on your machine. Tasks come from MD files in `<ralph-dir>/backlog/`. Progress tracked in `<ralph-dir>/history.md` instead of git commits. Gitignored by default — use Ralph without your team having to know about it. Use `/draft-prd` to create PRDs into the backlog.
+   - **Local** — Everything stays on your machine. Tasks come from MD files in `<ralph-dir>/backlog/`. Progress tracked in `<ralph-dir>/history.md` instead of git commits. Gitignored by default — use Ralph without your team having to know about it. Use `/draft-task`, `/draft-prd`, `/draft-plan`, or `/grill-to-plan` to add work to the backlog.
 
 2. **HITL or also AFK?** — HITL (once.sh) only, or also set up AFK (afk.sh)? **Strongly recommend starting with HITL** — see how Ralph behaves before letting it run unsupervised. **If Docker is not installed, only offer HITL.**
 

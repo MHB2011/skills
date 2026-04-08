@@ -598,12 +598,14 @@ Install these to create tasks, PRDs, and plans directly into the backlog:
 npx skills@latest add MHB2011/skills/draft-task -g
 npx skills@latest add MHB2011/skills/draft-prd -g
 npx skills@latest add MHB2011/skills/draft-plan -g
+npx skills@latest add MHB2011/skills/grill-to-plan -g
 \`\`\`
 
 Then use:
 - `/draft-task` — quickly add a task, bug, or small piece of work to the backlog
 - `/draft-prd` — interview-driven PRD, saved to `backlog/prd/` (Ralph won't pick these up directly)
 - `/draft-plan` — turn a backlog PRD into a phased plan with tracer bullets, saved to `backlog/`
+- `/grill-to-plan` — interview-driven plan, saved directly to `backlog/` (no PRD needed)
 
 ### Priority
 
