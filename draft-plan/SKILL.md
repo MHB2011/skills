@@ -5,13 +5,13 @@ description: Turn a PRD from Ralph's local backlog into a phased implementation 
 
 # Draft Plan
 
-Break a PRD from `ralph/backlog/` into a phased implementation plan using vertical slices (tracer bullets). Saves the plan back to `ralph/backlog/` so Ralph can pick it up.
+Break a PRD from `ralph/backlog/prd/` into a phased implementation plan using vertical slices (tracer bullets). Saves the plan to `ralph/backlog/` so Ralph can pick it up.
 
 ## Process
 
 ### 1. Find the PRD
 
-Look for PRD files in `ralph/backlog/` (files with `type: prd` in frontmatter). If there are multiple, ask the user which one. If none exist, suggest running `/draft-prd` first.
+Look for PRD files in `ralph/backlog/prd/` (files with `type: prd` in frontmatter). If there are multiple, ask the user which one. If none exist, suggest running `/draft-prd` first.
 
 ### 2. Explore the codebase
 
@@ -78,7 +78,7 @@ Use the same priority as the source PRD unless the user says otherwise.
 <plan-template>
 # Plan: <Feature Name>
 
-> Source PRD: <PRD filename in backlog, e.g. `instructor-analytics-dashboard.md`>
+> Source PRD: <PRD filename, e.g. `backlog/prd/instructor-analytics-dashboard.md`>
 
 ## Architectural decisions
 

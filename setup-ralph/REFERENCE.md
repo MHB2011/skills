@@ -273,6 +273,8 @@ echo "Ralph reached max iterations ($1)."
 
 Local backlog items are provided at start of context. Each item is a markdown file with frontmatter (title, type, status, priority). Parse them to find open items.
 
+**Only work on items with `type: task`, `type: plan`, or `type: bug`.** Skip items with `type: prd` — those are requirements documents meant to be turned into plans or tasks first.
+
 You've also been passed recent work history entries. Review these to understand what work has been done.
 
 If all tasks are complete, output <promise>NO MORE TASKS</promise>.
@@ -384,7 +386,7 @@ created: 2026-04-07
 **Fields:**
 
 - **title** — Short descriptive title
-- **type** — One of: `prd`, `plan`, `bug`, `task`, `refactor`, `infrastructure`
+- **type** — One of: `prd`, `plan`, `bug`, `task`, `refactor`, `infrastructure`. Ralph only picks up `task`, `plan`, and `bug` types. PRDs go in `backlog/prd/` and are not worked on directly.
 - **status** — One of: `open`, `in-progress`, `closed`
 - **priority** — 1 through 5, maps to task selection order:
   - 1 = Critical bugfix
@@ -549,7 +551,8 @@ Ralph does NOT make git commits — you review the changes and commit manually.
 | `once.sh` | HITL mode — runs Claude once, you review after each run |
 | `afk.sh` | AFK mode — loops Claude autonomously (requires Docker) |
 | `history.md` | Progress log — Ralph appends entries here instead of git commits |
-| `backlog/` | Task queue — each `.md` file is a task with frontmatter |
+| `backlog/` | Task queue — each `.md` file is a task or plan with frontmatter |
+| `backlog/prd/` | PRDs — requirements docs that feed into plans/tasks, not picked up by Ralph directly |
 
 ## Usage
 
@@ -599,7 +602,7 @@ npx skills@latest add MHB2011/skills/draft-plan -g
 
 Then use:
 - `/draft-task` — quickly add a task, bug, or small piece of work to the backlog
-- `/draft-prd` — interview-driven PRD, saved to `backlog/`
+- `/draft-prd` — interview-driven PRD, saved to `backlog/prd/` (Ralph won't pick these up directly)
 - `/draft-plan` — turn a backlog PRD into a phased plan with tracer bullets, saved to `backlog/`
 
 ### Priority

@@ -9,7 +9,7 @@ You may skip steps if you don't consider them necessary.
 
 ## Before starting
 
-Check that `ralph/backlog/` exists. If it doesn't, ask the user where their Ralph backlog directory is, or suggest running `/setup-ralph` first.
+Check that `ralph/backlog/prd/` exists. If it doesn't, ask the user where their Ralph backlog directory is, or suggest running `/setup-ralph` first.
 
 ## Workflow
 
@@ -32,9 +32,9 @@ Check with the user that these modules match their expectations. Check with the 
    - 4 = Polish / quick win
    - 5 = Refactor
 
-6. Once you have a complete understanding of the problem and solution, write the PRD using the template below and save it as a markdown file in `ralph/backlog/`.
+6. Once you have a complete understanding of the problem and solution, write the PRD using the template below and save it as a markdown file in `ralph/backlog/prd/`.
 
-**Filename:** kebab-case of the title (e.g., `instructor-analytics-dashboard.md`).
+**Filename:** kebab-case of the title (e.g., `instructor-analytics-dashboard.md`). Saved to `ralph/backlog/prd/`.
 
 **Frontmatter:**
 
