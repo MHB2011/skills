@@ -275,9 +275,11 @@ Local backlog items are provided at start of context. Each item is a markdown fi
 
 **Only work on items with `type: task`, `type: plan`, or `type: bug`.** Skip items with `type: prd` — those are requirements documents meant to be turned into plans or tasks first.
 
+If a task has a `mode` field, only work on `mode: afk` tasks. Skip `mode: hitl` tasks — those require human interaction. If a task has a `blocked_by` field, check that all listed tasks have `status: closed` before picking it.
+
 You've also been passed recent work history entries. Review these to understand what work has been done.
 
-If all tasks are complete, output <promise>NO MORE TASKS</promise>.
+If all tasks are complete (or all remaining tasks are `mode: hitl` or blocked), output <promise>NO MORE TASKS</promise>.
 
 # TASK SELECTION
 
@@ -395,6 +397,9 @@ created: 2026-04-07
   - 4 = Polish / quick win
   - 5 = Refactor
 - **created** — Date the item was created
+- **source_prd** *(optional)* — Filename of the parent PRD (used by `/prd-to-tasks`)
+- **mode** *(optional)* — `afk` or `hitl`. Ralph skips `hitl` tasks (used by `/prd-to-tasks`)
+- **blocked_by** *(optional)* — List of task filenames that must be `status: closed` before this task can start (used by `/prd-to-tasks`)
 
 ### Body
 
@@ -598,6 +603,7 @@ Install these to create tasks, PRDs, and plans directly into the backlog:
 npx skills@latest add MHB2011/skills/draft-task -g
 npx skills@latest add MHB2011/skills/draft-prd -g
 npx skills@latest add MHB2011/skills/draft-plan -g
+npx skills@latest add MHB2011/skills/prd-to-tasks -g
 npx skills@latest add MHB2011/skills/grill-to-plan -g
 \`\`\`
 
@@ -605,6 +611,7 @@ Then use:
 - `/draft-task` — quickly add a task, bug, or small piece of work to the backlog
 - `/draft-prd` — interview-driven PRD, saved to `backlog/prd/` (Ralph won't pick these up directly)
 - `/draft-plan` — turn a backlog PRD into a phased plan with tracer bullets, saved to `backlog/`
+- `/prd-to-tasks` — break a PRD into independent kanban-style tasks with dependencies and HITL/AFK categorization
 - `/grill-to-plan` — interview-driven plan, saved directly to `backlog/` (no PRD needed)
 
 ### Priority
