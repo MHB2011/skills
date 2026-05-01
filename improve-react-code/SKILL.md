@@ -50,7 +50,7 @@ Refuse to flag a component for compound-component refactoring unless **at least 
 - (b) The same condition is checked in ≥2 JSX branches inside one component.
 - (c) UI rendered outside the visual box needs the component's state/actions.
 - (d) Variants need different state-management implementations (ephemeral vs synced, etc.).
-- (e) **Strongest signal** — 2+ implementations share the same structure (same lifecycle, same async pattern, same JSX skeleton), whether they live as siblings in one feature **or scattered across unrelated features**. Sibling clusters (`*Form` siblings within one feature) are the easiest case. Cross-feature duplication — the same upload handler in `services/`, `staff/`, `clients/`, `settings/` — counts equally and often hides better because there's no naming similarity to flag it.
+- (e) **Strongest signal** — 2+ structurally similar siblings exist that would share extracted bricks.
 
 Below that threshold, single booleans, single render-prop slots, and children-as-function are fine. Don't refactor for the sake of it.
 
@@ -74,7 +74,6 @@ Use the Agent tool with `subagent_type=Explore` to walk the React side of the co
 - For each cluster, read the candidate components and judge structural similarity by eye. Two components share a "substructure" when they render a recognizable named region (header, body, footer, action row, input area, etc.) the same way. A cluster qualifies when ≥2 components share ≥3 substructures.
 - Note components with high prop count (many booleans), `useEffect` whose only job is calling a parent setter, `useImperativeHandle` outside design-system primitives, and array-of-config UI with heterogeneous item shapes.
 - **Trace prop-drilling depth.** Pick stateful props (state values, setters, callbacks owned higher up). Follow each one down the tree. If a prop is forwarded through ≥3 components that do not consume it themselves, that's threshold-(c) firing — the leaf component is reaching back to the root via the intermediate layers. "It works" is not an excuse: pass-through layers are exactly the smell. Cite the chain explicitly in the finding (e.g. `Page → DayView → StaffColumn → AppointmentBlock`).
-- **Scan for cross-feature hook-shaped boilerplate.** Beyond name-stem clusters, look for the same custom-hook-shaped logic appearing in ≥3 unrelated feature folders. Common shapes: file upload (`FormData` + `fetch('/api/...')` + `uploading` state), debounced search (input + `setTimeout` + cancel), drag-reorder (`dragging` state + `onDragStart/Over/Drop` + persist), local-storage-backed state (`useState` + `useEffect` writing to `localStorage`), toast/notification boilerplate. Naming differs across features (no name-stem clue) but the *implementation shape* is near-identical. Flag for `useX()` extraction.
 
 Apply the **threshold** before promoting any finding into the report.
 
