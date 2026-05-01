@@ -20,6 +20,12 @@ npx skills@latest add MHB2011/skills/<skill-name>
 | [draft-task](./draft-task) | Quickly add a task, bug, or small piece of work to Ralph's local backlog |
 | [grill-to-plan](./grill-to-plan) | Interview the user about a feature, then generate a phased plan directly to Ralph's backlog (no PRD needed) |
 
+### React
+
+| Skill | Description |
+|-------|-------------|
+| [improve-react-code](./improve-react-code) | Audit a React codebase for composition and state-lifting refactor opportunities (compound components, lifted providers, lego-brick reuse across sibling clusters) |
+
 ### Tooling & Setup
 
 | Skill | Description |
