@@ -50,9 +50,21 @@ Refuse to flag a component for compound-component refactoring unless **at least 
 - (b) The same condition is checked in ≥2 JSX branches inside one component.
 - (c) UI rendered outside the visual box needs the component's state/actions.
 - (d) Variants need different state-management implementations (ephemeral vs synced, etc.).
-- (e) **Strongest signal** — 2+ structurally similar siblings exist that would share extracted bricks.
+- (e) **Strongest signal** — 2+ similar components **reimplement** the same internals instead of composing shared bricks. Distinct pages or variants are *not* the smell — `CreateUserPage` and `EditUserPage` existing as separate pages is correct, the same way Fernando's `ChannelComposer`, `ThreadComposer`, and `EditMessageComposer` are correctly separate. The smell is when each one carries its own copy of the form fields, the upload handler, the lifecycle, instead of composing shared `Header`, `Fields`, `Submit` pieces. Look for the *missing* shared brick, not the *existing* sibling.
 
 Below that threshold, single booleans, single render-prop slots, and children-as-function are fine. Don't refactor for the sake of it.
+
+## When duplication is the right call
+
+DRY is a goal, not a rule. **Prefer duplication over the wrong abstraction** (Sandi Metz). Wrong abstractions accumulate conditionals over time as new requirements force them to flex; duplication stays honest and easy to delete. Leave repetition alone when:
+
+- **Two callers + small block.** Rule of Three: asking *"haven't I written this before?"* twice is fine — on the third occurrence the pattern starts to scream. Two callers of a 5-line block is below threshold. Two callers of a 100-line form is not — substantial duplication earns extraction at two.
+- **The duplicates might evolve independently.** Two forms in different domains (staff vs client, payments vs shipping) may look identical today and diverge as each domain grows. Forcing them through one shared API makes future divergence painful — the abstraction grows conditional flags to accommodate. Optimize for change.
+- **The abstraction would leak its implementation.** A hook with 8 parameters, a brick with 5 render-prop slots, or a component with `hasX` / `disableY` flags is the abstraction failing. Two duplicated implementations are more readable than one over-parameterized one.
+- **The repeated block is trivial.** A default `[]`, a `setState(false)` reset, a `className` concatenation — these don't earn names. Reading them in place beats jumping to another file.
+- **The use cases haven't crystallized.** If you'd have to guess what callers will need, you'll guess wrong. Wait for the patterns to scream — not whisper.
+
+When in doubt, leave the duplication. The audit should propose abstractions only when the patterns *scream*.
 
 ## Shape — provider vs custom hook
 
@@ -77,7 +89,19 @@ Use the Agent tool with `subagent_type=Explore` to walk the React side of the co
 
 Apply the **threshold** before promoting any finding into the report.
 
-### 2. Present numbered candidates
+### 2. Verify before promoting
+
+For each candidate that passes the threshold, run three checks before adding it to the report. This filters out the most common failure modes: hallucinated extractions, premature abstractions, and misidentified state machines.
+
+1. **Structural identity check.** Are the alleged duplicates actually structurally identical, or do they just *look* similar? Open both files. List the substructures (header, body, footer, validation, error handling). Compare 1:1. If the *same* JSX shape is rendered with different validators, different success paths, or different button arrangements, the duplication is shallower than it looks.
+
+2. **Load-bearing divergence check.** Would the proposed abstraction force divergent cases through one API surface? If a brick proposed for "shared chrome" would force some consumers to use escape hatches because their footer, header, or action shape genuinely differs (one needs Save/Cancel, another needs Activate/Deactivate, another needs no buttons), the brick is too thin. Propose a richer API (slot, children, render-prop) — or downgrade the finding to "split the file" without proposing a chrome brick.
+
+3. **State-machine vs boolean-bloat check.** A boolean or enum prop deciding which subtree renders is a smell *only when* the branches are variants of *the same thing*. If `mode === "draft"` shows an Edit button and `mode === "published"` shows an Unpublish button, those are semantically distinct operations on different states — that's a state machine, and the branching is correct. Don't flag.
+
+**If any check fails, demote or drop.** Demote Critical → Medium → Bikeshedding when the underlying signal is real but the proposed shape is wrong. Drop entirely when the finding is a hallucination (the alleged duplicate doesn't exist) or a misidentified state machine. Note dropped findings briefly in the "What I left out" section so the user knows they were considered.
+
+### 3. Present numbered candidates
 
 Return a numbered list. Each candidate:
 
@@ -92,7 +116,7 @@ Do NOT propose detailed interfaces yet. Ask: *"Which of these would you like to 
 
 > **No subsumption.** If a narrow finding (e.g. two duplicated staff forms) fits inside a broader one (e.g. a cross-feature lifecycle pattern), surface **both** as separate candidates. They have different right answers — the narrow one may need a provider extraction while the broader one needs a hook. Don't drop the smaller finding because the bigger one "covers it." A 100-line two-component duplication and a 10-call-site lifecycle hook are independent wins.
 
-### 3. Grilling loop
+### 4. Grilling loop
 
 Once the user picks a candidate, walk the design tree: what becomes a brick, what stays a one-off, where the provider sits, who lifts state, what `meta` carries, which siblings need access. Output a recommended interface (set of compound parts + provider shape) that the user can hand to Claude to implement.
 
