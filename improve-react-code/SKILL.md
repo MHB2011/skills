@@ -73,6 +73,7 @@ Use the Agent tool with `subagent_type=Explore` to walk the React side of the co
 - Scan for **name-stem clusters** (`*Form`, `*Modal`, `*Dialog`, `*Card`, `*List`, `*Wizard`, `*Sheet`, `*Drawer`, `*Panel`, `*Composer`).
 - For each cluster, read the candidate components and judge structural similarity by eye. Two components share a "substructure" when they render a recognizable named region (header, body, footer, action row, input area, etc.) the same way. A cluster qualifies when ≥2 components share ≥3 substructures.
 - Note components with high prop count (many booleans), `useEffect` whose only job is calling a parent setter, `useImperativeHandle` outside design-system primitives, and array-of-config UI with heterogeneous item shapes.
+- **Trace prop-drilling depth.** Pick stateful props (state values, setters, callbacks owned higher up). Follow each one down the tree. If a prop is forwarded through ≥3 components that do not consume it themselves, that's threshold-(c) firing — the leaf component is reaching back to the root via the intermediate layers. "It works" is not an excuse: pass-through layers are exactly the smell. Cite the chain explicitly in the finding (e.g. `Page → DayView → StaffColumn → AppointmentBlock`).
 
 Apply the **threshold** before promoting any finding into the report.
 
@@ -88,6 +89,8 @@ Return a numbered list. Each candidate:
 - **Benefits** — testability, fewer call-site shapes, AI navigability.
 
 Do NOT propose detailed interfaces yet. Ask: *"Which of these would you like to explore?"*
+
+> **No subsumption.** If a narrow finding (e.g. two duplicated staff forms) fits inside a broader one (e.g. a cross-feature lifecycle pattern), surface **both** as separate candidates. They have different right answers — the narrow one may need a provider extraction while the broader one needs a hook. Don't drop the smaller finding because the bigger one "covers it." A 100-line two-component duplication and a 10-call-site lifecycle hook are independent wins.
 
 ### 3. Grilling loop
 
@@ -433,6 +436,4 @@ User-targeted paths (e.g. `improve-react-code path/to/file.tsx`) bypass every sk
 ## Notes
 
 - **Agnostic to state-management library.** The provider's interface is `{ state, actions, meta }`; the implementation can be `useState`, Zustand, Redux, a sync hook, or anything else.
-- **React Compiler** removes most context-perf objections — a consumer is memoized by the slice it reads. If the project doesn't use the compiler yet, suggest it as a follow-up.
-- **Respect existing codebase conventions** — naming style, file structure, dot-namespacing — even when proposing refactors.
-- **Does not read CONTEXT.md or ADRs.** This skill audits code patterns, not domain modeling.
+- **React Compiler** removes most context-perf objections — a consumer is memoized by the slice it reads.
