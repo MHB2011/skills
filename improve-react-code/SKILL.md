@@ -56,7 +56,7 @@ Below that threshold, single booleans, single render-prop slots, and children-as
 
 ## When duplication is the right call
 
-DRY is a goal, not a rule. **Prefer duplication over the wrong abstraction** (Sandi Metz). Wrong abstractions accumulate conditionals over time as new requirements force them to flex; duplication stays honest and easy to delete. Leave repetition alone when:
+DRY is a goal, not a rule. **Prefer duplication over the wrong abstraction**. Wrong abstractions accumulate conditionals over time as new requirements force them to flex; duplication stays honest and easy to delete. Leave repetition alone when:
 
 - **Two callers + small block.** Rule of Three: asking *"haven't I written this before?"* twice is fine — on the third occurrence the pattern starts to scream. Two callers of a 5-line block is below threshold. Two callers of a 100-line form is not — substantial duplication earns extraction at two.
 - **The duplicates might evolve independently.** Two forms in different domains (staff vs client, payments vs shipping) may look identical today and diverge as each domain grows. Forcing them through one shared API makes future divergence painful — the abstraction grows conditional flags to accommodate. Optimize for change.
