@@ -54,6 +54,16 @@ Refuse to flag a component for compound-component refactoring unless **at least 
 
 Below that threshold, single booleans, single render-prop slots, and children-as-function are fine. Don't refactor for the sake of it.
 
+## Shape — provider vs custom hook
+
+Once a finding passes the threshold, decide *what shape* the abstraction takes. Don't reach for a provider every time.
+
+- **Shared state across siblings** → **lifted provider** with `{ state, actions, meta }`. Use this when multiple components need to read or update the same values (wizard step, selected appointment, draft form contents).
+- **Shared lifecycle around a callback** → **custom hook**. Use this when each consumer owns its own state but repeats the same `saving / error / success / handleSave` boilerplate around a callback. `useSectionForm(saveFn, onSaved)` returning `{ saving, error, success, handleSave }` is the canonical shape.
+- **One-shot imperative interactions** (confirm dialogs, toasts) → **imperative hook** like `useConfirm()` returning `{ confirm }` that owns its own open/saving lifecycle internally. The call site just `await`s it.
+
+If the proposed solution is a hook, none of the compound-component principles (provider, frame, named subcomponents) apply — the hook *is* the abstraction.
+
 ## Process
 
 ### 1. Explore
@@ -73,7 +83,7 @@ Return a numbered list. Each candidate:
 - **Files** — paths involved.
 - **Problem** — which principle is being violated, in plain English. Reference the principle by short name.
 - **Solution** — sketch the proposed compound API in flat-export style (`<UserFormProvider>`, `<UserFormFields>`, `<UserFormSubmit>`) — unless the codebase already uses dot-namespaced compound, in which case match that.
-- **Reuse map** — which other components would consume the extracted bricks (this is what makes a finding *Critical*).
+- **Reuse map** — which **existing** components would consume the extracted bricks. Cite real consumers only — don't speculate about hypothetical future use cases ("future bulk import," "could be used for X"). This is what makes a finding *Critical*.
 - **Severity** — Critical / Medium / Bikeshedding (see below).
 - **Benefits** — testability, fewer call-site shapes, AI navigability.
 
@@ -107,13 +117,295 @@ Once the user picks a candidate, walk the design tree: what becomes a brick, wha
 - Render-prop slots that work fine and don't escape the box.
 - 3+ props describing the same element with only 1 caller.
 
-## Agnostic examples
+## Examples
 
-- **UserForm with `isCreate` / `isUpdate` booleans** → split into `CreateUserForm` and `UpdateUserForm`, sharing `UserFormProvider`, `UserFormFields`, `UserFormSubmit`.
-- **Modal with `renderFooter` whose footer needs modal state** → refactor to `<ModalProvider>` + `<Modal.Footer>` siblings reading shared context.
-- **DataTable taking `[{label, isSortable, divider, isMenu, items}]`** → flat JSX subcomponents `<Table.Column>`, `<Table.Divider>`, `<Table.MenuColumn>`.
-- **Wizard syncing state up via `useEffect(() => onStepChange(currentStep), [currentStep])`** → lift `<WizardProvider>` so the parent's Next/Back buttons read context directly.
-- **Dialog with `disableDropzone`, `hideHeader`, `hideTitle` flags** → distinct dialog components that simply omit the parts they don't need.
+Five canonical refactors. Use these as templates when sketching Solution shapes in the report.
+
+### 1. Boolean-bloat → split into siblings sharing bricks
+
+```tsx
+// BEFORE
+function UserForm({ isUpdate, hideWelcome, hideTerms, onSuccess }) {
+  const user = isUpdate ? useUser() : null;
+  return (
+    <form>
+      {!hideWelcome && <Welcome />}
+      <Fields initialUser={user} />
+      {!hideTerms && <Terms />}
+      <button>{isUpdate ? "Save" : "Create"}</button>
+    </form>
+  );
+}
+
+// usage:
+<UserForm isUpdate hideWelcome hideTerms onSuccess={...} />
+<UserForm onSuccess={...} />
+```
+
+```tsx
+// AFTER
+function UserFormProvider({ initialUser, children }) {
+  const [draft, setDraft] = useState(initialUser ?? emptyUser);
+  return <Ctx.Provider value={{ draft, setDraft }}>{children}</Ctx.Provider>;
+}
+function UserFormFields() { /* reads ctx */ }
+function UserFormSubmit({ children }) { /* reads ctx, posts */ }
+
+function CreateUserForm() {
+  return (
+    <UserFormProvider>
+      <Welcome />
+      <UserFormFields />
+      <Terms />
+      <UserFormSubmit>Create</UserFormSubmit>
+    </UserFormProvider>
+  );
+}
+
+function UpdateUserForm() {
+  const user = useUser();
+  return (
+    <UserFormProvider initialUser={user}>
+      <UserFormFields />
+      <UserFormSubmit>Save</UserFormSubmit>
+    </UserFormProvider>
+  );
+}
+```
+
+### 2. Sibling state-sync via callback → lifted provider
+
+```tsx
+// BEFORE — Next/Back live outside the wizard, state is drilled
+function Page() {
+  const [step, setStep] = useState(0);
+  return (
+    <>
+      <Wizard step={step} onStepChange={setStep} />
+      <BackButton onClick={() => setStep((s) => s - 1)} />
+      <NextButton onClick={() => setStep((s) => s + 1)} />
+    </>
+  );
+}
+```
+
+```tsx
+// AFTER — provider wraps Wizard *and* the buttons
+function WizardProvider({ children }) {
+  const [step, setStep] = useState(0);
+  return <Ctx.Provider value={{ step, setStep }}>{children}</Ctx.Provider>;
+}
+function Wizard() { const { step } = useWizard(); /* renders step UI */ }
+function BackButton() { const { setStep } = useWizard(); /* ... */ }
+function NextButton() { const { setStep } = useWizard(); /* ... */ }
+
+function Page() {
+  return (
+    <WizardProvider>
+      <Wizard />
+      <BackButton />
+      <NextButton />
+    </WizardProvider>
+  );
+}
+```
+
+### 3. Repeated lifecycle → custom hook (not a provider)
+
+```tsx
+// BEFORE — every section reimplements the same save lifecycle
+function ProfileSection() {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const handleSave = async () => {
+    setSaving(true); setError(null);
+    try { await saveProfile(); setSuccess(true); }
+    catch (e) { setError(e); }
+    finally { setSaving(false); }
+  };
+  return /* ... */;
+}
+// PreferencesSection, BookingSection — same 12 lines copy-pasted
+```
+
+```tsx
+// AFTER — one hook, three call sites, each owns its own state
+function useSectionForm(saveFn) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const handleSave = async () => {
+    setSaving(true); setError(null);
+    try { await saveFn(); setSuccess(true); }
+    catch (e) { setError(e); }
+    finally { setSaving(false); }
+  };
+  return { saving, error, success, handleSave };
+}
+
+function ProfileSection() {
+  const { saving, error, handleSave } = useSectionForm(saveProfile);
+  return /* ... */;
+}
+```
+
+> Note: there is no shared state across sections — each call to `useSectionForm` gets its own. The shared thing is the *lifecycle shape*, not the values. That's why a hook fits, not a provider.
+
+### 4. Per-caller confirm state → imperative `useConfirm()` hook
+
+```tsx
+// BEFORE — every consumer manages its own confirm dialog
+function AppointmentCard() {
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  return (
+    <>
+      <button onClick={() => setPendingDelete(true)}>Delete</button>
+      <ConfirmDialog
+        open={pendingDelete}
+        saving={deleting}
+        onConfirm={async () => { setDeleting(true); await deleteAppt(); }}
+        onCancel={() => setPendingDelete(false)}
+      />
+    </>
+  );
+}
+```
+
+```tsx
+// AFTER — call site is one line; the hook owns the dialog
+function AppointmentCard() {
+  const { confirm } = useConfirm();
+  return (
+    <button
+      onClick={async () => {
+        if (await confirm({ title: "Delete?", message: "Cannot be undone." })) {
+          await deleteAppt();
+        }
+      }}
+    >
+      Delete
+    </button>
+  );
+}
+```
+
+### 5. `renderX` slot prop → compound subcomponent reading context
+
+```tsx
+// BEFORE — footer slot can't access modal's internal state
+function Modal({ title, renderFooter, children }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Dialog>
+      <header>{title}</header>
+      <main>{children}</main>
+      <footer>{renderFooter?.({ busy, setBusy })}</footer>
+    </Dialog>
+  );
+}
+
+<Modal
+  title="Edit"
+  renderFooter={({ busy, setBusy }) => (
+    <button disabled={busy} onClick={() => { setBusy(true); save(); }}>Save</button>
+  )}
+>
+  <Form />
+</Modal>
+```
+
+```tsx
+// AFTER — Modal.Footer is a real component reading modal context
+function ModalProvider({ children }) {
+  const [busy, setBusy] = useState(false);
+  return <Ctx.Provider value={{ busy, setBusy }}>{children}</Ctx.Provider>;
+}
+function Modal({ children }) { /* renders Dialog shell */ }
+function ModalHeader({ children }) { /* ... */ }
+function ModalBody({ children }) { /* ... */ }
+function ModalFooter({ children }) { /* ... */ }
+
+<ModalProvider>
+  <Modal>
+    <ModalHeader>Edit</ModalHeader>
+    <ModalBody><Form /></ModalBody>
+    <ModalFooter>
+      <SaveButton />  {/* reads { busy, setBusy } from context */}
+    </ModalFooter>
+  </Modal>
+</ModalProvider>
+```
+
+> If the Save button needs to live *outside* the Modal box (e.g. in a sticky page footer), it still works — it just needs to be rendered inside `<ModalProvider>`. That's the lifted-provider payoff.
+
+### 6. Hide-flags → just don't render the part
+
+```tsx
+// BEFORE — a single component with toggles for every variant
+function Dialog({ title, hideHeader, hideTitle, disableDropzone, children }) {
+  return (
+    <Shell>
+      {!hideHeader && (
+        <header>{!hideTitle && <h2>{title}</h2>}</header>
+      )}
+      {!disableDropzone && <Dropzone />}
+      <main>{children}</main>
+    </Shell>
+  );
+}
+
+<Dialog title="Edit" hideHeader disableDropzone>...</Dialog>
+<Dialog title="Forward" hideTitle>...</Dialog>
+```
+
+```tsx
+// AFTER — the absence of the part *is* the variant
+function Dialog({ children }) { return <Shell>{children}</Shell>; }
+function DialogHeader({ children }) { return <header>{children}</header>; }
+function DialogTitle({ children }) { return <h2>{children}</h2>; }
+function DialogDropzone() { /* ... */ }
+
+// Edit dialog has no header and no dropzone — just don't render them
+<Dialog>
+  <main>...</main>
+</Dialog>
+
+// Forward dialog has a header but no title
+<Dialog>
+  <DialogHeader>...</DialogHeader>
+  <DialogDropzone />
+  <main>...</main>
+</Dialog>
+```
+
+> No `hideX` / `disableX` props anywhere. The boolean is implicit in whether the JSX is present.
+
+### 7. Array-of-config → JSX subcomponents
+
+```tsx
+// BEFORE — heterogeneous item shapes hidden behind a config array
+<DataTable
+  columns={[
+    { key: "name", label: "Name", isSortable: true },
+    { divider: true },
+    { isMenu: true, items: [{ label: "Edit" }, { label: "Delete" }] },
+  ]}
+/>
+```
+
+```tsx
+// AFTER — flat JSX, easy to escape into one-offs
+<DataTable>
+  <DataTable.Column field="name" sortable>Name</DataTable.Column>
+  <DataTable.Divider />
+  <DataTable.MenuColumn>
+    <DataTable.MenuItem>Edit</DataTable.MenuItem>
+    <DataTable.MenuItem>Delete</DataTable.MenuItem>
+  </DataTable.MenuColumn>
+</DataTable>
+```
 
 ## Style for proposed solutions
 
