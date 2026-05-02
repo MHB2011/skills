@@ -34,6 +34,7 @@ Audit findings should be framed in terms of these principles. Reference them by 
 9. **Use `meta` for refs and non-state values** instead of `useImperativeHandle` or ref drilling.
 10. **Don't sync sibling state via `useEffect`.** A `useEffect(() => onChange(state), [state])` whose only job is lifting state up is the `onFormStateDidChange` smell. Lift the provider instead.
 11. **Don't fear context re-renders.** React Compiler memoizes consumers by the slice they actually read.
+12. **Guard for required data.** When a component is meaningful only with data that's loaded asynchronously, write a guard component (`<WithUser>`, `<WithCart>`) that owns the loading / error / missing-data branches and exposes children as a render prop receiving the data with a *non-optional* type. Hooks return state but can't *control rendering* — every consumer ends up writing the same `if (isLoading) / if (isError) / if (!data) return ...` triple. A guard moves that boilerplate behind one component, and the children compose naturally with guaranteed data.
 
 Plus, prop-API hygiene:
 
@@ -73,6 +74,7 @@ Once a finding passes the threshold, decide *what shape* the abstraction takes. 
 - **Shared state across siblings** → **lifted provider** with `{ state, actions, meta }`. Use this when multiple components need to read or update the same values (wizard step, selected appointment, draft form contents).
 - **Shared lifecycle around a callback** → **custom hook**. Use this when each consumer owns its own state but repeats the same `saving / error / success / handleSave` boilerplate around a callback. `useSectionForm(saveFn, onSaved)` returning `{ saving, error, success, handleSave }` is the canonical shape.
 - **One-shot imperative interactions** (confirm dialogs, toasts) → **imperative hook** like `useConfirm()` returning `{ confirm }` that owns its own open/saving lifecycle internally. The call site just `await`s it.
+- **Hook-data narrowing boilerplate** (`if (isLoading) / if (isError) / if (!data) return ...` repeated at every call site) → **guard component** like `<WithUser>` that owns the branches and exposes children as a render prop receiving non-optional data. Hooks can't control rendering; guards can.
 
 If the proposed solution is a hook, none of the compound-component principles (provider, frame, named subcomponents) apply — the hook *is* the abstraction.
 
@@ -87,6 +89,7 @@ Use the Agent tool with `subagent_type=Explore` to walk the React side of the co
 - Note components with high prop count (many booleans), `useEffect` whose only job is calling a parent setter, `useImperativeHandle` outside design-system primitives, and array-of-config UI with heterogeneous item shapes.
 - **Trace prop-drilling depth.** Pick stateful props (state values, setters, callbacks owned higher up). Follow each one down the tree. If a prop is forwarded through ≥3 components that do not consume it themselves, that's threshold-(c) firing — the leaf component is reaching back to the root via the intermediate layers. "It works" is not an excuse: pass-through layers are exactly the smell. Cite the chain explicitly in the finding (e.g. `Page → DayView → StaffColumn → AppointmentBlock`).
 - **Trace prop fan-out at a single level.** Beyond depth, count props passed to a single child component. If a parent passes ≥10 props (state, setters, callbacks combined) to one child, that's principle 8 firing — the child is a state-drop because the parent owns state the child should read from context. Common shape: wizard steps each receiving `step`, `selection`, `setSelection`, `loading`, `setLoading`, `data`, `setData`, `onNext`, `onBack`, `onSubmit`. Even with no depth-drilling, this is the lift-the-provider signal. Cite the prop count and the receiving component in the finding.
+- **Look for hook-data narrowing boilerplate.** If ≥3 components each call the same data hook and follow it with the `if (isLoading) / if (isError) / if (!data) return ...` triple, that's a guard candidate (principle 12). The boilerplate disappears when a `<WithX>` guard owns the branches and passes guaranteed data via a render prop. Cite the consumers and the hook in the finding.
 
 Apply the **threshold** before promoting any finding into the report.
 
@@ -434,6 +437,59 @@ function DialogDropzone() { /* ... */ }
   </DataTable.MenuColumn>
 </DataTable>
 ```
+
+### 8. Hook-data narrowing boilerplate → guard component
+
+```tsx
+// BEFORE — every consumer narrows the same hook
+function ProfilePage() {
+  const { data: user, isLoading, isError, refetch } = useUser();
+  if (isLoading) return <Spinner />;
+  if (isError) return <ErrorScreen onRetry={refetch} />;
+  if (!user) return null;
+  return <Profile user={user} />;
+}
+
+// repeated in OrdersPage, SettingsPage, BookingsPage, …
+// each one re-types `user` as `User | undefined` outside the narrowed scope
+```
+
+```tsx
+// AFTER — guard owns the lifecycle; children get guaranteed data
+type WithUserProps = {
+  children: (data: { user: User }) => ReactNode;
+};
+
+function WithUser({ children }: WithUserProps) {
+  const { data: user, isLoading, isError, refetch } = useUser();
+  if (isLoading) return <Spinner />;
+  if (isError) return <ErrorScreen onRetry={refetch} />;
+  if (!user) return <ErrorScreen error="User not found" onRetry={refetch} />;
+  return <>{children({ user })}</>;
+}
+
+function ProfilePage() {
+  return <WithUser>{({ user }) => <Profile user={user} />}</WithUser>;
+}
+```
+
+> The render prop is the right tool here — children-as-function shares internal data with the caller (principle 6, valid use), and the type signature `(data: { user: User }) => ReactNode` *guarantees* `user` is non-optional inside the callback. No `user!` non-null assertions at call sites.
+>
+> **Guards compose by nesting** — each guard adds one more guaranteed value to the scope:
+>
+> ```tsx
+> <WithUser>
+>   {({ user }) => (
+>     <WithCart user={user}>
+>       {({ cart }) => <CartScreen cart={cart} user={user} />}
+>     </WithCart>
+>   )}
+> </WithUser>
+> ```
+>
+> Pyramid shape is fine at 2–3 levels. If you find yourself stacking 5+ guards, that's a smell — combine into one composite guard, or fetch the chained data inside a single guard.
+>
+> **Convention:** `With*` prefix marks a guard component (`WithUser`, `WithCart`, `WithCurrentSession`). Strict mode (`children: (data: { user: User }) => ...`) guarantees presence; if a screen optionally has the data, type as `(data: { user?: User }) => ...` and skip the `!data` branch.
 
 ## Style for proposed solutions
 
